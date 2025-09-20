@@ -1,4 +1,5 @@
 QueryCraft - Natural Language to SQL Query System
+
 Overview
 QueryCraft is a web application that allows non-technical users to query databases using natural language (English or Persian). It uses AI to convert questions into SQL queries, executes them against a PostgreSQL database, and returns the results through a simple web interface.
 
