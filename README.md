@@ -23,12 +23,11 @@ Docker and Docker Compose installed on your system
 Installation Steps
 Clone the repository:
 
-bash
 git clone <https://github.com/FatemeFazlali/querycraft-project>
 cd querycraft-project
+
 Start the application with Docker Compose:
 
-bash
 docker-compose up
 The application will automatically:
 
@@ -44,6 +43,7 @@ Initialize the Ollama service with the sqlcoder:7b model
 
 Access the application at http://localhost:8000
 
+
 Technical Decisions
 Framework Selection: Django was chosen for its robustness, ORM capabilities, and built-in admin interface
 
@@ -58,9 +58,9 @@ Containerization: Dockerized the entire application for easy deployment and cons
 Validation System: Implemented multiple validation layers to ensure generated SQL queries are safe and appropriate
 
 API Usage
+
 The application provides a REST API endpoint at /api/query/ that accepts POST requests with JSON payloads:
 
-bash
 curl -X POST http://localhost:8000/api/query/ \
   -H "Content-Type: application/json" \
   -d '{"question": "What is the most expensive product?"}'
@@ -73,7 +73,9 @@ json
   "execution_time": 0.08,
   "query_complexity": "simple"
 }
+
 Ideas for Improvement
+
 Additional Database Support: Extend support to other database systems like MySQL or SQLite
 
 Query Caching: Implement caching of frequently used queries to improve performance
@@ -94,7 +96,9 @@ API Rate Limiting: Implement rate limiting for production deployment
 
 Monitoring: Add performance monitoring and logging capabilities
 
+
 Assumptions and Changes
+
 Used sqlcoder:7b model instead of the specified model in the requirements as it was more readily available
 
 Enhanced the prompt engineering to include specific column mappings for better accuracy
@@ -104,6 +108,7 @@ Added additional validation to ensure SQL queries match the intent of the natura
 Used Django's ORM instead of raw SQL for database operations where possible
 
 Implemented in-memory query history instead of database persistence for simplicity
+
 
 Support
 For questions or issues with QueryCraft, please open an issue in the GitHub repository or contact the development team.
