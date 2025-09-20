@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QueryCraft - Natural Language to SQL</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .container { display: flex; gap: 20px; }
+        .query-panel { flex: 1; }
+        .history-panel { flex: 1; }
+        textarea { width: 100%; height: 100px; margin-bottom: 10px; }
+        button { padding: 10px 20px; background: #4CAF50; color: white; border: none; cursor: pointer; margin-right: 10px; }
+        button:hover { background: #45a049; }
+        #results { margin-top: 20px; }
+        .sql { background: #f5f5f5; padding: 10px; border-radius: 5px; font-family: monospace; }
+        .history-item { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 5px; }
+        .history-question { font-weight: bold; }
+        .history-sql { font-family: monospace; background: #f9f9f9; padding: 5px; }
+        .error { color: #d32f2f; }
+        .success { color: #388e3c; }
+        .stats { background: #e3f2fd; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>QueryCraft</h1>
+    
+    <div class="stats" id="stats">
+        <h3>Query Statistics</h3>
+        <div id="stats-content">Loading statistics...</div>
+    </div>
+    
+    <div class="container">
+        <div class="query-panel">
+            <h2>Ask a Question</h2>
+            <p>Ask questions about your data in natural language (English or Persian):</p>
+            
+            <textarea id="question" placeholder="e.g., How many customers registered last month?"></textarea>
+            <br>
+            <button onclick="askQuestion()">Ask Question</button>
+            <button onclick="clearHistory()" style="background: #f44336;">Clear History</button>
+            
+            <div id="results"></div>
+        </div>
+        
+        <div class="history-panel">
+            <h2>Query History</h2>
+            <button onclick="loadHistory()">Refresh History</button>
+            <div id="history"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Load stats and history on page load
+        window.onload = function() {
+            loadStats();
+            loadHistory();
+        };
+        
+        function askQuestion() {
+            const question = document.getElementById('question').value;
+            const resultsDiv = document.getElementById('results');
+            
+            resultsDiv.innerHTML = '<p>Processing your question...</p>';
+            
+            fetch('/api/query/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({question: question})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    resultsDiv.innerHTML = `<p class="error">Error: ${data.error}</p>`;
+                    if (data.suggestion) {
+                        resultsDiv.innerHTML += `<p>${data.suggestion}</p>`;
+                    }
+                } else {
+                    resultsDiv.innerHTML = `
+                        <h3>Generated SQL:</h3>
+                        <div class="sql">${data.sql}</div>
+                        <p><strong>Execution Time:</strong> ${data.execution_time.toFixed(2)}s</p>
+                        <p><strong>Query Complexity:</strong> ${data.query_complexity}</p>
+                        <h3>Results:</h3>
+                        <pre>${JSON.stringify(data.results, null, 2)}</pre>
+                    `;
+                }
+                
+                // Refresh stats and history
+                loadStats();
+                loadHistory();
+            })
+            .catch(error => {
+                resultsDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            });
+        }
+        
+        function loadHistory() {
+            fetch('/api/query/history/?limit=10')
+            .then(response => response.json())
+            .then(data => {
+                const historyDiv = document.getElementById('history');
+                if (data.history && data.history.length > 0) {
+                    let html = '';
+                    data.history.reverse().forEach(item => {
+                        html += `
+                            <div class="history-item">
+                                <div class="history-question">${item.question}</div>
+                                <div class="history-sql">${item.sql_query}</div>
+                                <div>Results: ${item.results.length} rows</div>
+                                <div>Time: ${item.execution_time.toFixed(2)}s</div>
+                                ${item.error ? `<div class="error">Error: ${item.error}</div>` : ''}
+                                <div><small>${new Date(item.timestamp).toLocaleString()}</small></div>
+                            </div>
+                        `;
+                    });
+                    historyDiv.innerHTML = html;
+                } else {
+                    historyDiv.innerHTML = '<p>No query history yet.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading history:', error);
+            });
+        }
+        
+        function loadStats() {
+            fetch('/api/query/stats/')
+            .then(response => response.json())
+            .then(data => {
+                const statsDiv = document.getElementById('stats-content');
+                statsDiv.innerHTML = `
+                    <p>Total Queries: ${data.total_queries || 0}</p>
+                    <p>Successful: ${data.successful_queries || 0}</p>
+                    <p>Failed: ${data.failed_queries || 0}</p>
+                    <p>Average Execution Time: ${data.avg_execution_time || 0}s</p>
+                `;
+            })
+            .catch(error => {
+                console.error('Error loading stats:', error);
+            });
+        }
+        
+        function clearHistory() {
+            if (confirm('Are you sure you want to clear all query history?')) {
+                fetch('/api/query/history/', {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    loadHistory();
+                    loadStats();
+                })
+                .catch(error => {
+                    console.error('Error clearing history:', error);
+                });
+            }
+        }
+        
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>
