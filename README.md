@@ -24,6 +24,7 @@ Installation Steps
 Clone the repository:
 
 git clone <https://github.com/FatemeFazlali/querycraft-project>
+
 cd querycraft-project
 
 Start the application with Docker Compose:
